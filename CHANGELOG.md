@@ -1,6 +1,6 @@
-#Changelog
+# Changelog
 
-##03.12.2021
+## 03.12.2021
 * First attempts with geograpy3
 	- Usage of places.countries/places.cities.places.regions
 	- City accuracy depends on presence of country in input
@@ -20,5 +20,4 @@
 	7. First number after each month's name
 	8. spacy on split input looking for 4-digit numeral -> year
 	9. Remove extracted properties
-	10. Title is a WIP
-		
+	10. Title is a WIP		
