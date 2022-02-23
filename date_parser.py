@@ -1,17 +1,18 @@
 import re
 
 # Original signature
-conf = 'Proceedings of the ACM SIGPLAN Workshop on Partial Evaluation and Program Manipulation, Los Angeles, CA, USA, January 8-9, 2018'
-print('Input:\n' + conf)
+conf = '24th International Workshop on Database and Expert Systems Applications, DEXA 2013, Prague, Czech Republic, August 26-29, 2013'
 
 # Tests for different date formats (DO NOT FORGET TO COMMENT THE LINE ABOVE BEFORE TESTING!):
-# conf = 'Proceedings of the ACM SIGPLAN Workshop on Partial Evaluation and Program Manipulation, Los Angeles, CA, USA, 8-9 January, 2018'
-# conf = 'Proceedings of the ACM SIGPLAN Workshop on Partial Evaluation and Program Manipulation, Los Angeles, CA, USA, December 31 - January 3, 2018'
-# conf = 'Proceedings of the ACM SIGPLAN Workshop on Partial Evaluation and Program Manipulation, Los Angeles, CA, USA, 31 December - 3 January, 2018'
-# conf = 'Proceedings of the ACM SIGPLAN Workshop on Partial Evaluation and Program Manipulation, Los Angeles, CA, USA, Jan 8-9, 2018'
-# conf = 'Proceedings of the ACM SIGPLAN Workshop on Partial Evaluation and Program Manipulation, Los Angeles, CA, USA, 8-9 Jan, 2018'
-# conf = 'Proceedings of the ACM SIGPLAN Workshop on Partial Evaluation and Program Manipulation, Los Angeles, CA, USA, Dec 31 - Jan 3, 2018'
-# conf = 'Proceedings of the ACM SIGPLAN Workshop on Partial Evaluation and Program Manipulation, Los Angeles, CA, USA, 31 Dec - 3 Jan, 2018'
+# conf = 'Proceedings of the ACM SIGPLAN Workshop on Partial Evaluation and Program Manipulation, Los Angeles, CA, USA, 8-11 January, 2018'
+# conf = 'Proceedings of the ACM SIGPLAN Workshop on Partial Evaluation and Program Manipulation, Los Angeles, CA, USA, November 30 - December 3, 2018'
+# conf = 'Proceedings of the ACM SIGPLAN Workshop on Partial Evaluation and Program Manipulation, Los Angeles, CA, USA, 30 November - 3 December, 2018'
+# conf = 'Proceedings of the ACM SIGPLAN Workshop on Partial Evaluation and Program Manipulation, Los Angeles, CA, USA, Jan 8-11, 2018'
+# conf = 'Proceedings of the ACM SIGPLAN Workshop on Partial Evaluation and Program Manipulation, Los Angeles, CA, USA, 8-11 Jan, 2018'
+# conf = 'Proceedings of the ACM SIGPLAN Workshop on Partial Evaluation and Program Manipulation, Los Angeles, CA, USA, Nov 30 - Dec 3, 2018'
+# conf = 'Proceedings of the ACM SIGPLAN Workshop on Partial Evaluation and Program Manipulation, Los Angeles, CA, USA, 30 Nov - 3 Dec, 2018'
+
+print('Input:\n' + conf)
 
 conf_split = re.split(r'[., \-:]+', conf)
 print('Split input:')
@@ -56,7 +57,8 @@ print('- Year: ' + year)
 print('- Start date: ' + start_date)
 print('- End date: ' + end_date)
 
-conf_split.remove(year)
+while year in conf_split:
+    conf_split.remove(year)
 
 for month in months_found:
     conf_split.remove(month)
