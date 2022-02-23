@@ -1,6 +1,2 @@
 # https://github.com/WolfgangFahl/ConferenceCorpus
 ConferenceCorpus~=0.0.28
-# web server with Flask and Bootstrap4
-pyFlaskBootstrap4~=0.4.4
-# https://github.com/somnathrakshit/geograpy3
-geograpy3~=0.2.1
