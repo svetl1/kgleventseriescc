@@ -21,6 +21,17 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: [3.7, 3.8, 3.9]
         
+    services:
+      # Label used to access the service container
+      neo4j:
+        # Docker Hub image
+        image: neo4j:4.4.3-community
+        env:
+          NEO4J_AUTH: none
+        ports:
+          - 7474:7474
+          - 7687:7687    
+        
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
