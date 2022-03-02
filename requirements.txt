@@ -1,2 +1,4 @@
 # https://github.com/WolfgangFahl/ConferenceCorpus
 ConferenceCorpus~=0.0.28
+# https://github.com/somnathrakshit/geograpy3
+geograpy3~=0.2.2
