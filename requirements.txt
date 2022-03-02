@@ -2,3 +2,5 @@
 ConferenceCorpus~=0.0.28
 # https://github.com/somnathrakshit/geograpy3
 geograpy3~=0.2.2
+# https://github.com/py2neo-org/py2neo
+py2neo~=2021.2.3
