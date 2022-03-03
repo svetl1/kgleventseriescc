@@ -1,6 +1,59 @@
 {% import 'macros.html' as macros %}
 {{ macros.header("Event Series Matching") }}
 {% if menuList %}{{ macros.menu(menuList) }}{%endif %}
-{% if content is not none %}{{ content|safe }}{%endif %}
-{% if error is not none %}<span style="color:red">Error: {{ error }}</span>{%endif %}
+<br>
+<form action="/match" method="GET">
+    <div class="row">
+        <div class="col-md-6">
+            Enter a title of a scientific event:
+            <textarea id="input" name="input" rows="5" cols="100">{{ input }}</textarea>
+        </div>
+        <div id="matchresult" class="col-md-6">
+            <div class="row">
+                {%if result is not none %}
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Ordinal</th>
+                            <th scope="col">Title</th>
+                            <th scope="col">Date</th>
+                            <th scope="col">Location</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for matchTitle in result %}
+                        {% set rowloop = loop %}
+                        {% for event in matchTitle.events %}
+                        <tr>
+                            <th scope="row">{{ rowloop.index }} - {{ loop.index }}</th>
+                            <td>{{event.ordinal}}</td>
+                            <td>{{event.title}}</td>
+                            <td>{{event.date}}</td>
+                            <td>{{event.location}}</td>
+                        </tr>
+                        {% endfor %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% endif %}
+            </div>
+            <!-- result metadata optional from here -->
+            <!-- errors -->
+            <div class="row">
+                {% if errors is not none %}
+                {% for e in errors %}
+                <pre><span style="color:darkred">{{err}}</span></pre>
+                {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div id="matchcol" class="col-md-6">
+            <button type='submit' id="match">search</button>
+        </div>
+    </div>
+</form>
+
+
 {{ macros.footer() }}
