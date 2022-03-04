@@ -2,13 +2,16 @@ import re
 def dateParser(dateString):
         conf_split = re.split(r'[., \-:]+', dateString)
         year_match = re.search(r'(19|20)[0-9]{2}', dateString)
-        year = year_match.group()
-
+        if(year_match is not None):
+            year = year_match.group()
+        else:
+            year = None
         months = ['January', 'Jan', 'February', 'Feb', 'March', 'Mar', 'April', 'Apr', 'May', 'June', 'Jun', 'July',
                   'Jul', 'August', 'Aug', 'September', 'Sep', 'October', 'Oct', 'November', 'Nov', 'December', 'Dec']
 
         months_found = [m for m in conf_split if m in months]
-
+        if(len(months_found) == 0):
+            return None
         month_day = []
         results = {}
         day_after = True
@@ -47,8 +50,8 @@ def dateParser(dateString):
         for month in months_found:
             conf_split.remove(month)
 
-        for date in month_day:
-            for day in re.findall(r'\b\d+\b', date):
-                conf_split.remove(day)
+#        for date in month_day: //this causes some errors
+#            for day in re.findall(r'\b\d+\b', date):
+#                conf_split.remove(day)
         results['rest'] = conf_split
         return results

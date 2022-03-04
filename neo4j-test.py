@@ -2,14 +2,14 @@ import re
 import date_parser2
 from py2neo import Graph
 import requests
-#graph = Graph("bolt://localhost:7687", auth=("", ""))
+graph = Graph("bolt://localhost:7687", auth=("", ""))
 
-months = ['January', 'Jan', 'February', 'Feb', 'March', 'Mar', 'April', 'Apr', '-', 'May', 'June', 'Jun', 'July', 'Jul', 'August', 'Aug', 'September', 'Sept', 'October', 'Oct', 'November', 'Nov', 'December', 'Dec']
+months = ['January', 'Jan', 'February', 'Feb', 'March', 'Mar', 'April', 'Apr', '-', 'May', 'June', 'Jun', 'July', 'Jul', 'August', 'Aug', 'September', 'Sep', 'October', 'Oct', 'November', 'Nov', 'December', 'Dec']
 
 
-def addEvent(event):
+def addWikiCFPEvent(event):
 		query="""
-		MERGE (e:Event:ConfRef {eventId:$event.eventId})
+		MERGE (e:Event:wikiCFP {eventId:$event.eventId})
 		ON CREATE SET e = $event
 		ON MATCH SET e += $event
 		"""
@@ -17,6 +17,62 @@ def addEvent(event):
 		params={"event":records}
 		qres = graph.run(query, params)
 		return qres
+
+
+def addWikiDataEvent(event):
+	query = """
+		MERGE (e:Event:wikiData {eventId:$event.eventId})
+		ON CREATE SET e = $event
+		ON MATCH SET e += $event
+		"""
+	records = event
+	params = {"event": records}
+	qres = graph.run(query, params)
+	return qres
+
+def addConfref(event):
+	query = """
+		MERGE (e:Event:confref {eventId:$event.eventId})
+		ON CREATE SET e = $event
+		ON MATCH SET e += $event
+		"""
+	records = event
+	params = {"event": records}
+	qres = graph.run(query, params)
+	return qres
+
+def addCrossref(event):
+	query = """
+		MERGE (e:Event:crossref {eventId:$event.eventId})
+		ON CREATE SET e = $event
+		ON MATCH SET e += $event
+		"""
+	records = event
+	params = {"event": records}
+	qres = graph.run(query, params)
+	return qres
+
+def addDBLP(event):
+	query = """
+		MERGE (e:Event:dblp{eventId:$event.eventId})
+		ON CREATE SET e = $event
+		ON MATCH SET e += $event
+		"""
+	records = event
+	params = {"event": records}
+	qres = graph.run(query, params)
+	return qres
+
+def dblp(event):
+	query = """
+		MERGE (e:Event:WikiData {eventId:$event.eventId})
+		ON CREATE SET e = $event
+		ON MATCH SET e += $event
+		"""
+	records = event
+	params = {"event": records}
+	qres = graph.run(query, params)
+	return qres
 
 def normalizeAcronym(acronymString):
 	listForAcronym= re.split(r'[., \-:]+', acronymString)
@@ -42,7 +98,7 @@ def normalizeNumToDate(dateString):
 	monthDay = months[(int(dateList[1])*2) - 1] + " " + dateList[2].lstrip('0')
 	return monthDay
 
-acronym = "ICEIS"
+acronym = "ISCA"
 res = requests.get("https://conferencecorpus.bitplan.com/eventseries/" + acronym)
 lods = res.json()
 wikidataRecords = lods.get("wikidata")
@@ -59,7 +115,7 @@ if(wikicfpRecords is not None):
 			record['endDate'] = normalizeDate(record.get("endDate"))
 		if (record.get("acronym") is not None):
 			record['acronym'] = normalizeAcronym(record.get("acronym"))
-
+		addWikiCFPEvent(record)
 
 if(dblpRecords is not None):
 	for record in dblpRecords:
@@ -70,7 +126,7 @@ if(dblpRecords is not None):
 			if(results is not None):
 				record['startDate'] = results['startDate']
 				record['endDate'] = results['endDate']
-		print(record)
+		addDBLP(record)
 
 
 
@@ -83,7 +139,7 @@ if(crossrefRecords is not None):
 			record['endDate'] = normalizeDate(record.get("endDate"))
 		if (record.get("acronym") is not None):
 			record['acronym'] = normalizeAcronym(record.get("acronym"))
-
+		#addCrossref(record)
 
 if(wikidataRecords is not None):
 	for record in wikidataRecords:
@@ -95,6 +151,7 @@ if(wikidataRecords is not None):
 			record['startDate'] = normalizeDate(record.get("startDate"))
 		if (record.get("endDate") is not None):
 			record['endDate'] = normalizeDate(record.get("endDate"))
+		addWikiDataEvent(record)
 
 if(confrefRecords is not None):
 	for record in confrefRecords:
@@ -102,7 +159,8 @@ if(confrefRecords is not None):
 			record['startDate'] = normalizeNumToDate(record.get("startDate"))
 		if (record.get("endDate") is not None):
 			record['endDate'] = normalizeNumToDate(record.get("endDate"))
-#    addEvent(record)
+		addConfref(record)
+
 
 
 
