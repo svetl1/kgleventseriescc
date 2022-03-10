@@ -7,72 +7,16 @@ graph = Graph("bolt://localhost:7687", auth=("", ""))
 months = ['January', 'Jan', 'February', 'Feb', 'March', 'Mar', 'April', 'Apr', '-', 'May', 'June', 'Jun', 'July', 'Jul', 'August', 'Aug', 'September', 'Sep', 'October', 'Oct', 'November', 'Nov', 'December', 'Dec']
 
 
-def addWikiCFPEvent(event):
-		query="""
-		MERGE (e:Event:wikiCFP {eventId:$event.eventId})
+def addEvent(event: dict, source):
+		event['matches'] = "empty"
+		query=f"""
+		MERGE (e:Event:{source} {{eventId:$event.eventId}})
 		ON CREATE SET e = $event
 		ON MATCH SET e += $event
 		"""
-		records=event
-		params={"event":records}
+		params = {"event": event}
 		qres = graph.run(query, params)
 		return qres
-
-
-def addWikiDataEvent(event):
-	query = """
-		MERGE (e:Event:wikiData {eventId:$event.eventId})
-		ON CREATE SET e = $event
-		ON MATCH SET e += $event
-		"""
-	records = event
-	params = {"event": records}
-	qres = graph.run(query, params)
-	return qres
-
-def addConfref(event):
-	query = """
-		MERGE (e:Event:confref {eventId:$event.eventId})
-		ON CREATE SET e = $event
-		ON MATCH SET e += $event
-		"""
-	records = event
-	params = {"event": records}
-	qres = graph.run(query, params)
-	return qres
-
-def addCrossref(event):
-	query = """
-		MERGE (e:Event:crossref {eventId:$event.eventId})
-		ON CREATE SET e = $event
-		ON MATCH SET e += $event
-		"""
-	records = event
-	params = {"event": records}
-	qres = graph.run(query, params)
-	return qres
-
-def addDBLP(event):
-	query = """
-		MERGE (e:Event:dblp{eventId:$event.eventId})
-		ON CREATE SET e = $event
-		ON MATCH SET e += $event
-		"""
-	records = event
-	params = {"event": records}
-	qres = graph.run(query, params)
-	return qres
-
-def dblp(event):
-	query = """
-		MERGE (e:Event:WikiData {eventId:$event.eventId})
-		ON CREATE SET e = $event
-		ON MATCH SET e += $event
-		"""
-	records = event
-	params = {"event": records}
-	qres = graph.run(query, params)
-	return qres
 
 def normalizeAcronym(acronymString):
 	listForAcronym= re.split(r'[., \-:]+', acronymString)
@@ -107,6 +51,7 @@ dblpRecords = lods.get("dblp")
 confrefRecords = lods.get("confref")
 crossrefRecords = lods.get("crossref")
 
+
 if(wikicfpRecords is not None):
 	for record in wikicfpRecords:
 		if (record.get("startDate") is not None):
@@ -115,7 +60,15 @@ if(wikicfpRecords is not None):
 			record['endDate'] = normalizeDate(record.get("endDate"))
 		if (record.get("acronym") is not None):
 			record['acronym'] = normalizeAcronym(record.get("acronym"))
-		addWikiCFPEvent(record)
+		if(record.get("locality") is not None):
+			localityData = re.split(r",\s|/|/\s", record.get("locality"))
+			if(record.get("city") is None):
+				record['city'] = localityData[0]
+			if(record.get("country") is None):
+				record['country'] =localityData[len(localityData) - 1]
+		#print(str(record['locality'] or '-') + "  city: " + str(record['city'] or '-') + " country: " + str(record['country'] or '-'))
+		addEvent(record, "wikiCFP")
+
 
 if(dblpRecords is not None):
 	for record in dblpRecords:
@@ -126,10 +79,8 @@ if(dblpRecords is not None):
 			if(results is not None):
 				record['startDate'] = results['startDate']
 				record['endDate'] = results['endDate']
-		addDBLP(record)
-
-
-
+		if(record.get("title") is None or (record.get("title").find("Proceedings") == -1 and record.get("title").find("Proceeding") == -1) ):
+			addEvent(record, "DBLP")
 
 if(crossrefRecords is not None):
 	for record in crossrefRecords:
@@ -139,19 +90,32 @@ if(crossrefRecords is not None):
 			record['endDate'] = normalizeDate(record.get("endDate"))
 		if (record.get("acronym") is not None):
 			record['acronym'] = normalizeAcronym(record.get("acronym"))
-		#addCrossref(record)
+		if (record.get("location") is not None and not record.get("location") == "Not Known"):
+			locationData = re.split(r",\s|/|/\s", record.get("location"))
+			if (record.get("city") is None):
+				record['city'] = locationData[0]
+			if (record.get("country") is None):
+				record['country'] = locationData[len(locationData) - 1]
+		if(record.get("title") is None or (record.get("title").find("Proceedings") == -1 and record.get("title").find("Proceeding") == -1) ):
+			addEvent(record, "crossref")
+			#print(str(record['location'] or '-') + "  city: " + str(record['city'] or '-') + " country: " + str(
+			#record['country'] or '-') + "TITLE: " + record['title'])
+
 
 if(wikidataRecords is not None):
 	for record in wikidataRecords:
 		if (record.get("acronym") is not None):
 			record['acronym'] = normalizeAcronym(record.get("acronym"))
 		if(record.get("cityId") is not None):
-			record['cityId'] = normalizeCityId(record.get("cityId"))
+			record['cityWikidataid'] = normalizeCityId(record.get("cityId"))
 		if (record.get("startDate") is not None):
 			record['startDate'] = normalizeDate(record.get("startDate"))
 		if (record.get("endDate") is not None):
 			record['endDate'] = normalizeDate(record.get("endDate"))
-		addWikiDataEvent(record)
+		if (record.get("city") is None):
+			if (record.get("location") is not None):
+				record['city'] = record.get("location")
+		addEvent(record, "wikiData")
 
 if(confrefRecords is not None):
 	for record in confrefRecords:
@@ -159,8 +123,58 @@ if(confrefRecords is not None):
 			record['startDate'] = normalizeNumToDate(record.get("startDate"))
 		if (record.get("endDate") is not None):
 			record['endDate'] = normalizeNumToDate(record.get("endDate"))
-		addConfref(record)
+		addEvent(record, "confref")
+		#print(str(record['location'] or '-') + "  city: " + str(record['city'] or '-') + " country: " + str(
+		#record['country'] or '-') + "TITLE: " + record['title'])
+
+def filterAcronym():
+	query =f'''MATCH(n: Event) WHERE NOT n.acronym = "{acronym}" OR n.acronym IS NULL DETACH DELETE n'''
+	graph.run(query)
 
 
+def locationRelation():
+	query = '''MATCH(n: Event) MATCH(m: Event) 
+	WHERE n.country = m.country 
+	AND n.city = m.city
+	AND NOT m.source = n.source
+	MERGE(n) - [r: SAME_location]-(m)
+	RETURN *'''
+	graph.run(query)
 
 
+def dayMonthRelation():
+	query = '''MATCH(n:Event)
+	MATCH(m:Event) 
+	WHERE n.startDate = m.startDate 
+	AND n.endDate = m.endDate
+	AND NOT n.source = m.source
+	MERGE(n)-[r:SAME_dayMonth]-(m)
+	RETURN *'''
+	graph.run(query)
+
+def yearRelation():
+	query = '''MATCH(n:Event)
+	MATCH(m:Event) 
+	WHERE n.year = m.year
+	AND NOT n.source = m.source
+	MERGE(n)-[r:SAME_year]-(m)
+	RETURN *'''
+	graph.run(query)
+
+
+def filterYear():
+	query = '''MATCH (n:Event)-[r]->(m:Event) WHERE NOT (n) =(m) AND NOT (n)-[:SAME_year]-(m) DELETE r'''
+	graph.run(query)
+
+def resetGraph():
+	query = '''match ()-[r]->() delete r'''
+	graph.run(query)
+	query = '''match (n) DELETE n'''
+	graph.run(query)
+
+
+filterAcronym()
+locationRelation()
+dayMonthRelation()
+yearRelation()
+filterYear()
