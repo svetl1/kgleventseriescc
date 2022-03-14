@@ -127,14 +127,17 @@ if(confrefRecords is not None):
 		#print(str(record['location'] or '-') + "  city: " + str(record['city'] or '-') + " country: " + str(
 		#record['country'] or '-') + "TITLE: " + record['title'])
 
+queryCondition = "NOT exists((n)-[]-(:Acronym)) AND NOT exists((m)-[]-(:Acronym))"
+
 def filterAcronym():
-	query =f'''MATCH(n: Event) WHERE NOT n.acronym = "{acronym}" OR n.acronym IS NULL DETACH DELETE n'''
+	query =f'''MATCH(n: Event) WHERE NOT exists((n)-[]-(:Acronym)) AND (NOT n.acronym = "{acronym}" OR n.acronym IS NULL) DETACH DELETE n'''
 	graph.run(query)
 
 
 def locationRelation():
-	query = '''MATCH(n: Event) MATCH(m: Event) 
-	WHERE n.country = m.country 
+	query = f'''MATCH(n: Event) MATCH(m: Event) 
+	WHERE {queryCondition}
+	AND n.country = m.country 
 	AND n.city = m.city
 	AND NOT m.source = n.source
 	MERGE(n) - [r: SAME_location]-(m)
@@ -143,9 +146,10 @@ def locationRelation():
 
 
 def dayMonthRelation():
-	query = '''MATCH(n:Event)
+	query = f'''MATCH(n:Event)
 	MATCH(m:Event) 
-	WHERE n.startDate = m.startDate 
+	WHERE {queryCondition}
+	AND n.startDate = m.startDate 
 	AND n.endDate = m.endDate
 	AND NOT n.source = m.source
 	MERGE(n)-[r:SAME_dayMonth]-(m)
@@ -153,9 +157,10 @@ def dayMonthRelation():
 	graph.run(query)
 
 def yearRelation():
-	query = '''MATCH(n:Event)
+	query = f'''MATCH(n:Event)
 	MATCH(m:Event) 
-	WHERE n.year = m.year
+	WHERE {queryCondition}
+	AND n.year = m.year
 	AND NOT n.source = m.source
 	MERGE(n)-[r:SAME_year]-(m)
 	RETURN *'''
@@ -163,13 +168,39 @@ def yearRelation():
 
 
 def filterYear():
-	query = '''MATCH (n:Event)-[r]->(m:Event) WHERE NOT (n) =(m) AND NOT (n)-[:SAME_year]-(m) DELETE r'''
+	query = f'''MATCH (n:Event)-[r]-(m:Event)
+	WHERE {queryCondition}
+	AND NOT (n) =(m) 
+	AND NOT (n)-[:SAME_year]-(m) 
+	DELETE r'''
 	graph.run(query)
 
 def resetGraph():
-	query = '''match ()-[r]->() delete r'''
+	query = '''match ()-[r]-() delete r'''
 	graph.run(query)
 	query = '''match (n) DELETE n'''
+	graph.run(query)
+
+def match(numberOfRelations):
+	query = f'''MATCH (n:Event) MATCH (m:Event) 
+	WHERE {queryCondition}
+	AND size((n)-[]-(m)) = {numberOfRelations} 
+	AND NOT n.matches contains m.source 
+	AND NOT m.matches contains n.source 
+	MERGE (n)-[:SAME]-(m) ON CREATE SET n.matches = n.matches + m.source, m.matches = m.matches + n.source'''
+	graph.run(query)
+
+def bindToAcronym():
+	query = f'''CREATE (a:Acronym {{Id: "{acronym}"}})'''
+	graph.run(query)
+
+	query = '''MATCH (n:Event) WHERE exists((n)-[]-(:Event)) 
+	AND NOT exists ((n)-[:SAME]-()) 
+	DETACH DELETE n'''
+	graph.run(query)
+
+	query = f'''MATCH (n:Acronym{{Id : "{acronym}"}}) MATCH (m:Event) 
+	WHERE NOT exists((m)-[]-(:Acronym)) MERGE (m)-[:acronym]-(n)'''
 	graph.run(query)
 
 
@@ -178,3 +209,7 @@ locationRelation()
 dayMonthRelation()
 yearRelation()
 filterYear()
+match(3)
+match(2)
+match(1)
+bindToAcronym()
