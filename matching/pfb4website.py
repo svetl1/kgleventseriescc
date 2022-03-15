@@ -1,13 +1,8 @@
 import uuid
 
 from fb4.app import AppWrap
-from fb4.icons_bp import IconsBlueprint
-from fb4.login_bp import LoginForm
 from fb4.sqldb import db
-from fb4.login_bp import LoginBluePrint
-from flask_login import current_user, login_required
-from fb4.sse_bp import SSE_BluePrint
-from fb4.widgets import Copyright, Link, Icon, Image, Menu, MenuItem, DropDownMenu, LodTable, DropZoneField, ButtonField
+from fb4.widgets import Link, Icon, Image, Menu, MenuItem, LodTable, DropZoneField, ButtonField
 from flask import redirect, render_template, request, flash, Markup, url_for, abort
 from flask_wtf import FlaskForm, CSRFProtect
 from wtforms import StringField, SubmitField, TextAreaField
@@ -51,7 +46,7 @@ class App(AppWrap):
 
         @app.route('/', methods=['GET', 'POST'])
         def index():
-            return self.index()
+            return self.home()
 
     def initDB(self, limit=50):
         self.db.drop_all()
@@ -84,7 +79,7 @@ class App(AppWrap):
             links.append(Link(self.basedUrl(url_for(endpoint)), title=title, newTab=newTab))
         return links
 
-    def index(self):
+    def home(self):
         menuLinks = self.getMenuLinks()
         return self.render_template('index.html', menuLinks=menuLinks)
 
