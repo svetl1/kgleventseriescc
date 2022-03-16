@@ -70,14 +70,16 @@ class CCtoGraph:
 				if (record.get("acronym") is not None):
 					record['acronym'] = self.normalizeAcronym(record.get("acronym"))
 				if (record.get("title") is not None):
+					'''if (record.get("title").find("Proceedings") > -1 or record.get("title").find(
+							"Proceeding") > -1):
+						record['startDate'] = "invalid"
+						record['endDate'] = "invalid"
+					else:'''
 					results = date_parser2.dateParser(record.get("title"))
 					if (results is not None):
 						record['startDate'] = results['startDate']
 						record['endDate'] = results['endDate']
-				if (record.get("title") is None or (
-						record.get("title").find("Proceedings") == -1 and record.get("title").find(
-						"Proceeding") == -1)):
-					self.addEvent(record, "DBLP")
+				self.addEvent(record, "DBLP")
 
 		if (self.crossrefRecords is not None):
 			for record in self.crossrefRecords:
@@ -221,14 +223,12 @@ class CCtoGraph:
 		self.match(3)
 		self.match(2)
 		self.match(1)
-		self.bindToAcronym()
+		#self.bindToAcronym()
 
 myGraph = CCtoGraph(graph)
 myGraph.resetGraph()
 myGraph.startMatching("DEXA")
-myGraph.startMatching("ISCA")
-myGraph.startMatching("POPL")
-myGraph.startMatching("DEXA")
+
 
 
 
