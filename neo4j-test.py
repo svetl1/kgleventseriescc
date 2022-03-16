@@ -2,10 +2,12 @@ import re
 import date_parser2
 from py2neo import Graph
 import requests
+import ptp
+
 graph = Graph("bolt://localhost:7687", auth=("", ""))
 
 months = ['January', 'Jan', 'February', 'Feb', 'March', 'Mar', 'April', 'Apr', '-', 'May', 'June', 'Jun', 'July', 'Jul', 'August', 'Aug', 'September', 'Sep', 'October', 'Oct', 'November', 'Nov', 'December', 'Dec']
-
+parser = ptp.Ptp()
 
 class CCtoGraph:
 	def __init__(self, graph: Graph):
@@ -50,6 +52,7 @@ class CCtoGraph:
 	def addAll(self):
 		if (self.wikicfpRecords is not None):
 			for record in self.wikicfpRecords:
+				record['ordinal'] = parser.guessOrdinal(record)
 				if (record.get("startDate") is not None):
 					record['startDate'] = self.normalizeDate(record.get("startDate"))
 				if (record.get("endDate") is not None):
@@ -69,6 +72,9 @@ class CCtoGraph:
 			for record in self.dblpRecords:
 				if (record.get("acronym") is not None):
 					record['acronym'] = self.normalizeAcronym(record.get("acronym"))
+
+				record['ordinal'] = (parser.guessOrdinal(record))
+
 				if (record.get("title") is not None):
 					'''if (record.get("title").find("Proceedings") > -1 or record.get("title").find(
 							"Proceeding") > -1):
@@ -79,10 +85,24 @@ class CCtoGraph:
 					if (results is not None):
 						record['startDate'] = results['startDate']
 						record['endDate'] = results['endDate']
-				self.addEvent(record, "DBLP")
+					if(record.get("title").find("Workshop") == -1 and record.get("title").find("Workshops") == -1):
+						idList = re.split(r'[-]', record.get("eventId"))
+						if(len(idList) > 1 and idList[1].isnumeric()):
+							if(int(idList[1]) < 2):
+								self.addEvent(record, "DBLP")
+								print(idList[0])
+								print(idList[1])
+						else:
+							self.addEvent(record, "DBLP")
+							print(record.get("eventId") or "-")
+
 
 		if (self.crossrefRecords is not None):
 			for record in self.crossrefRecords:
+				if(record.get("number") is None):
+					record["ordinal"] = parser.guessOrdinal(record)
+				else:
+					record["ordinal"] = record['number']
 				if (record.get("startDate") is not None):
 					record['startDate'] = self.normalizeDate(record.get("startDate"))
 				if (record.get("endDate") is not None):
@@ -95,10 +115,10 @@ class CCtoGraph:
 						record['city'] = locationData[0]
 					if (record.get("country") is None):
 						record['country'] = locationData[len(locationData) - 1]
-				if (record.get("title") is None or (
+				'''if (record.get("title") is None or (
 						record.get("title").find("Proceedings") == -1 and record.get("title").find(
-						"Proceeding") == -1)):
-					self.addEvent(record, "crossref")
+						"Proceeding") == -1)):'''
+				self.addEvent(record, "crossref")
 			# print(str(record['location'] or '-') + "  city: " + str(record['city'] or '-') + " country: " + str(
 			# record['country'] or '-') + "TITLE: " + record['title'])
 
@@ -139,7 +159,7 @@ class CCtoGraph:
 		AND n.country = m.country 
 		AND n.city = m.city
 		AND NOT m.source = n.source
-		MERGE(n) - [r: SAME_location]-(m)
+		MERGE(n) - [r: same_location]-(m)
 		RETURN *'''
 		self.graph.run(query)
 
@@ -150,7 +170,17 @@ class CCtoGraph:
 		AND n.startDate = m.startDate 
 		AND n.endDate = m.endDate
 		AND NOT n.source = m.source
-		MERGE(n)-[r:SAME_dayMonth]-(m)
+		MERGE(n)-[r:same_dayMonth]-(m)
+		RETURN *'''
+		self.graph.run(query)
+
+	def ordinalRelation(self):
+		query = f'''MATCH(n:Event)
+		MATCH(m:Event) 
+		WHERE {self.queryCondition}
+		AND n.ordinal = m.ordinal
+		AND NOT n.source = m.source
+		MERGE(n)-[r:same_ordinal]-(m)
 		RETURN *'''
 		self.graph.run(query)
 
@@ -160,7 +190,7 @@ class CCtoGraph:
 		WHERE {self.queryCondition}
 		AND n.year = m.year
 		AND NOT n.source = m.source
-		MERGE(n)-[r:SAME_year]-(m)
+		MERGE(n)-[r:same_year]-(m)
 		RETURN *'''
 		self.graph.run(query)
 
@@ -168,7 +198,7 @@ class CCtoGraph:
 		query = f'''MATCH (n:Event)-[r]-(m:Event)
 		WHERE {self.queryCondition}
 		AND NOT (n) =(m) 
-		AND NOT (n)-[:SAME_year]-(m) 
+		AND NOT (n)-[:same_year]-(m) 
 		DELETE r'''
 		self.graph.run(query)
 
@@ -187,13 +217,14 @@ class CCtoGraph:
 		MERGE (n)-[:SAME]-(m) ON CREATE SET n.matches = n.matches + m.source, m.matches = m.matches + n.source'''
 		self.graph.run(query)
 
-	def bindToAcronym(self):
-		query = f'''CREATE (a:Acronym {{Id: "{self.acronym}"}})'''
+	def eliminateNonMatch(self):
+		query = '''MATCH (n:Event) WHERE exists((n)-[]-(:Event)) 
+					AND NOT exists ((n)-[:SAME]-()) 
+					DETACH DELETE n'''
 		self.graph.run(query)
 
-		query = '''MATCH (n:Event) WHERE exists((n)-[]-(:Event)) 
-		AND NOT exists ((n)-[:SAME]-()) 
-		DETACH DELETE n'''
+	def bindToAcronym(self):
+		query = f'''CREATE (a:Acronym {{Id: "{self.acronym}"}})'''
 		self.graph.run(query)
 
 		query = f'''MATCH (n:Acronym{{Id : "{self.acronym}"}}) MATCH (m:Event) 
@@ -218,16 +249,19 @@ class CCtoGraph:
 		self.filterAcronym()
 		self.locationRelation()
 		self.dayMonthRelation()
+		self.ordinalRelation()
 		self.yearRelation()
 		self.filterYear()
+		self.match(4)
 		self.match(3)
 		self.match(2)
 		self.match(1)
+		self.eliminateNonMatch()
 		#self.bindToAcronym()
 
 myGraph = CCtoGraph(graph)
 myGraph.resetGraph()
-myGraph.startMatching("DEXA")
+myGraph.startMatching("ICSR")
 
 
 
