@@ -16,6 +16,7 @@ class CCtoGraph:
 
 	def addEvent(self, event: dict, source):
 		event['matches'] = "empty"
+		event['numOfRel'] = 0
 		query = f"""
 		MERGE (e:Event:{source} {{eventId:$event.eventId}})
 		ON CREATE SET e = $event
@@ -90,11 +91,8 @@ class CCtoGraph:
 						if(len(idList) > 1 and idList[1].isnumeric()):
 							if(int(idList[1]) < 2):
 								self.addEvent(record, "DBLP")
-								print(idList[0])
-								print(idList[1])
 						else:
 							self.addEvent(record, "DBLP")
-							print(record.get("eventId") or "-")
 
 
 		if (self.crossrefRecords is not None):
@@ -160,6 +158,7 @@ class CCtoGraph:
 		AND n.city = m.city
 		AND NOT m.source = n.source
 		MERGE(n) - [r: same_location]-(m)
+		ON CREATE SET n.numOfRel = n.numOfRel +1, m.numOfRel = m.numOfRel +1
 		RETURN *'''
 		self.graph.run(query)
 
@@ -171,6 +170,7 @@ class CCtoGraph:
 		AND n.endDate = m.endDate
 		AND NOT n.source = m.source
 		MERGE(n)-[r:same_dayMonth]-(m)
+		ON CREATE SET n.numOfRel = n.numOfRel +1, m.numOfRel = m.numOfRel +1
 		RETURN *'''
 		self.graph.run(query)
 
@@ -181,6 +181,7 @@ class CCtoGraph:
 		AND n.ordinal = m.ordinal
 		AND NOT n.source = m.source
 		MERGE(n)-[r:same_ordinal]-(m)
+		ON CREATE SET n.numOfRel = n.numOfRel +1, m.numOfRel = m.numOfRel +1
 		RETURN *'''
 		self.graph.run(query)
 
@@ -191,6 +192,7 @@ class CCtoGraph:
 		AND n.year = m.year
 		AND NOT n.source = m.source
 		MERGE(n)-[r:same_year]-(m)
+		ON CREATE SET n.numOfRel = n.numOfRel +1, m.numOfRel = m.numOfRel +1
 		RETURN *'''
 		self.graph.run(query)
 
@@ -198,8 +200,17 @@ class CCtoGraph:
 		query = f'''MATCH (n:Event)-[r]-(m:Event)
 		WHERE {self.queryCondition}
 		AND NOT (n) =(m) 
-		AND NOT (n)-[:same_year]-(m) 
+		AND NOT (n)-[:same_year]-(m)
+		AND n.year > m.year
+		SET n.numOfRel = n.numOfRel -1, m.numOfRel = m.numOfRel -1
 		DELETE r'''
+		self.graph.run(query)
+
+	def firstElimination(self):
+		query = '''MATCH (n:Event)-[]-()-[]-(m:Event {source:n.source})
+		WHERE NOT (n) = (m)
+		AND n.numOfRel < m.numOfRel
+		DETACH DELETE n'''
 		self.graph.run(query)
 
 	def resetGraph(self):
@@ -252,11 +263,12 @@ class CCtoGraph:
 		self.ordinalRelation()
 		self.yearRelation()
 		self.filterYear()
-		self.match(4)
-		self.match(3)
-		self.match(2)
-		self.match(1)
-		self.eliminateNonMatch()
+		self.firstElimination()
+		#self.match(4)
+		#self.match(3)
+		#self.match(2)
+		#self.match(1)
+		#self.eliminateNonMatch()
 		#self.bindToAcronym()
 
 myGraph = CCtoGraph(graph)
