@@ -40,9 +40,14 @@ class CCtoGraph:
 		months_found = [m for m in dateList if m in months]
 		i = dateList.index(months_found[0])
 		if (dateList[i - 1].isdigit() and len(dateList[i - 1]) < 3):
-			monthDay = months_found[0][0:3] + " " + dateList[i - 1].lstrip('0')
+			if(dateList[i-1][0] == "0"): #remove leading zero
+				dateList[i-1] = dateList[i-1][1:]
+			monthDay = months_found[0][0:3] + " " + dateList[i - 1]
 		else:
+			if (dateList[i + 1][0] == "0"):  # remove leading zero
+				dateList[i + 1] = dateList[i+1][1:]
 			monthDay = months_found[0][0:3] + " " + dateList[i + 1].lstrip('0')
+		print(monthDay)
 		return monthDay
 
 	def normalizeNumToDate(self, dateString):
@@ -77,11 +82,6 @@ class CCtoGraph:
 				record['ordinal'] = (parser.guessOrdinal(record))
 
 				if (record.get("title") is not None):
-					'''if (record.get("title").find("Proceedings") > -1 or record.get("title").find(
-							"Proceeding") > -1):
-						record['startDate'] = "invalid"
-						record['endDate'] = "invalid"
-					else:'''
 					results = date_parser2.dateParser(record.get("title"))
 					if (results is not None):
 						record['startDate'] = results['startDate']
@@ -207,10 +207,12 @@ class CCtoGraph:
 		self.graph.run(query)
 
 	def firstElimination(self):
-		query = '''MATCH (n:Event)-[]-()-[]-(m:Event {source:n.source})
-		WHERE NOT (n) = (m)
+		query = f'''MATCH (n:Event)-[]-()-[]-(m:Event {{source:n.source}})
+		WHERE {self.queryCondition}
+		AND NOT (n) = (m)
 		AND n.numOfRel < m.numOfRel
-		DETACH DELETE n'''
+		WITH distinct(n) as d
+		DETACH DELETE d'''
 		self.graph.run(query)
 
 	def resetGraph(self):
@@ -264,16 +266,16 @@ class CCtoGraph:
 		self.yearRelation()
 		self.filterYear()
 		self.firstElimination()
-		#self.match(4)
-		#self.match(3)
-		#self.match(2)
-		#self.match(1)
-		#self.eliminateNonMatch()
+		self.match(4)
+		self.match(3)
+		self.match(2)
+		self.match(1)
+		self.eliminateNonMatch()
 		#self.bindToAcronym()
 
 myGraph = CCtoGraph(graph)
 myGraph.resetGraph()
-myGraph.startMatching("ICSR")
+myGraph.startMatching("DEXA")
 
 
 
