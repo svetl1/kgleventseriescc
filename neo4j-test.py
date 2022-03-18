@@ -46,13 +46,14 @@ class CCtoGraph:
 		else:
 			if (dateList[i + 1][0] == "0"):  # remove leading zero
 				dateList[i + 1] = dateList[i+1][1:]
-			monthDay = months_found[0][0:3] + " " + dateList[i + 1].lstrip('0')
-		print(monthDay)
+			monthDay = months_found[0][0:3] + " " + dateList[i + 1]
 		return monthDay
 
 	def normalizeNumToDate(self, dateString):
 		dateList = re.split(r'[-]', dateString)
-		monthDay = months[(int(dateList[1]) * 2) - 1] + " " + dateList[2].lstrip('0')
+		if (dateList[2][0] == "0"):  # remove leading zero
+			dateList[2] = dateList[2][1:]
+		monthDay = months[(int(dateList[1]) * 2) - 1] + " " + dateList[2]
 		return monthDay
 
 	def addAll(self):
@@ -65,8 +66,8 @@ class CCtoGraph:
 					record['endDate'] = self.normalizeDate(record.get("endDate"))
 				if (record.get("acronym") is not None):
 					record['acronym'] = self.normalizeAcronym(record.get("acronym"))
-				if (record.get("locality") is not None):
-					localityData = re.split(r",\s|/|/\s", record.get("locality"))
+				if (record.get("locality") is not None): # get location data from locality if city or country is None
+					localityData = re.split(r",\s|/|/\s", record.get("locality")) # inside r"" are the regular expressions to look for split with | . \s stay for white space as expression
 					if (record.get("city") is None):
 						record['city'] = localityData[0]
 					if (record.get("country") is None):
@@ -244,6 +245,36 @@ class CCtoGraph:
 		WHERE NOT exists((m)-[]-(:Acronym)) MERGE (m)-[:acronym]-(n)'''
 		self.graph.run(query)
 
+	def setForExtraction(self):
+		query = f'''MATCH (n:Event) WHERE n.acronym = "{self.acronym}"
+			Set n.ordinalRel = size((n)-[:same_ordinal]-()) + (CASE WHEN n.ordinal is Null then 0 else 1 END) , 
+			n.locationRel = size((n)-[:same_location]-()) + (CASE WHEN n.city is NULL and n.country is NULL then 0 else 1 END), 
+			n.dayMonthRel = size((n)-[:same_dayMonth]-()) + (CASE WHEN n.startDate is Null and n.endDate is Null then 0 else 1 END)'''
+		graph.run(query)
+
+	def extractProperties(self, acronym: str):
+		query = f'''MATCH (n:Event) WHERE n.acronym = "{self.acronym}"
+		RETURN distinct n.year Order by n.year'''
+		res = self.graph.run(query)
+		years = res.data()
+		for yearElement in years:
+			year = yearElement.get("n.year")
+			if(year is not None):
+				query = f'''MATCH (n:Event{{year:{year}}}) WHERE n.acronym = "{acronym}"
+				RETURN n.city, n.country order by n.locationRel descending Limit 1'''
+				location = graph.run(query).data()
+				query = f'''MATCH (n:Event{{year:{year}}}) WHERE n.acronym = "{acronym}"
+				RETURN n.ordinal order by n.ordinalRel descending Limit 1'''
+				ordinal = graph.run(query).data()
+				query = f'''MATCH (n:Event{{year:{year}}}) WHERE n.acronym = "{acronym}"
+				RETURN n.startDate, n.endDate order by n.monthDayRel descending Limit 1'''
+				monthDay = graph.run(query).data()
+
+			print("Results:*****")
+			print(location)
+			print(ordinal)
+			print(monthDay)
+
 	def startMatching(self, acronym):
 		if(not acronym in self.acronyms):
 			self.acronyms.append(acronym)
@@ -260,8 +291,8 @@ class CCtoGraph:
 		self.crossrefRecords = lods.get("crossref")
 		self.addAll()
 		self.filterAcronym()
-		self.locationRelation()
 		self.dayMonthRelation()
+		self.locationRelation()
 		self.ordinalRelation()
 		self.yearRelation()
 		self.filterYear()
@@ -271,7 +302,12 @@ class CCtoGraph:
 		self.match(2)
 		self.match(1)
 		self.eliminateNonMatch()
-		#self.bindToAcronym()
+		self.setForExtraction()
+		self.bindToAcronym()
+		self.extractProperties("DEXA")
+
+
+
 
 myGraph = CCtoGraph(graph)
 myGraph.resetGraph()
