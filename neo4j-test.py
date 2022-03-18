@@ -149,7 +149,7 @@ class CCtoGraph:
 	queryCondition = "NOT exists((n)-[]-(:Acronym)) AND NOT exists((m)-[]-(:Acronym))"
 
 	def filterAcronym(self):
-		query = f'''MATCH(n: Event) WHERE NOT exists((n)-[]-(:Acronym)) AND (NOT n.acronym = "{self.acronym}" OR n.acronym IS NULL) DETACH DELETE n'''
+		query = f'''MATCH(n: Event) WHERE NOT exists((n)-[]-(:Acronym)) AND NOT n.acronym = "{self.acronym}" OR n.acronym IS NULL DETACH DELETE n'''
 		self.graph.run(query)
 
 	def locationRelation(self):
@@ -232,7 +232,8 @@ class CCtoGraph:
 		self.graph.run(query)
 
 	def eliminateNonMatch(self):
-		query = '''MATCH (n:Event) WHERE exists((n)-[]-(:Event)) 
+		query = f'''MATCH (n:Event) WHERE NOT exists((n)-[]-(:Acronym)) 
+					AND exists((n)-[]-(:Event))
 					AND NOT exists ((n)-[:SAME]-()) 
 					DETACH DELETE n'''
 		self.graph.run(query)
@@ -304,14 +305,24 @@ class CCtoGraph:
 		self.eliminateNonMatch()
 		self.setForExtraction()
 		self.bindToAcronym()
-		self.extractProperties("DEXA")
 
 
+	def startExtracting(self, acronym):
+
+		self.extractProperties(acronym)
 
 
 myGraph = CCtoGraph(graph)
 myGraph.resetGraph()
+myGraph.startMatching("RTA")
+myGraph.startMatching("ISCAS")
 myGraph.startMatching("DEXA")
+#myGraph.startMatching("ISCA")
+#myGraph.startMatching("ISCAS")
+myGraph.startMatching("AAAI")
+
+
+#myGraph.startExtracting("DEXA") #do this always after the startmatching
 
 
 
