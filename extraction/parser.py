@@ -1,4 +1,4 @@
-import event
+from event import event
 import re
 import regex
 import geograpy
@@ -43,11 +43,11 @@ class Parser:
             'December': 12, 'Dec': 12
         }
 
-        year = re.search(r'(19|20)[0-9]{2}', self.split_signature)
+        year = re.search(r'(19|20)[0-9]{2}', self.signature)
 
         if (year is not None):
             year = year.group()
-            self.event.year = year.group()
+            self.event.year = year
             while year in self.split_signature:
                 self.split_signature.remove(year)
 
@@ -62,7 +62,7 @@ class Parser:
 
         if (len(find_months) == 2):
             self.event.start_month = months[find_months[0]]
-            self.event.start_month = months[find_months[1]]
+            self.event.end_month = months[find_months[1]]
 
             if (self.split_signature[i-1].isdigit()):
                 day_after = False
@@ -87,6 +87,7 @@ class Parser:
                     
         elif (len(find_months) == 1):
             self.event.start_month = months[find_months[0]]
+            self.event.end_month = months[find_months[0]]
 
             if (self.split_signature[i-1].isdigit() and len(self.split_signature[i-1]) < 3):
                 self.event.start_day = self.split_signature[i-2]
@@ -107,15 +108,16 @@ class Parser:
             self.event.region = s2[0][1:-1]
             self.event.country = s2[1][1:-1]
             space_signature = ' '.join(self.split_signature)
-            city = regex.search(r'(?:' + s1[0] + '){e<=3}', space_signature)
+            city = regex.search(r'\b(?:' + s1[0] + '){e<=3}', space_signature).group()
             i = space_signature.find(city)
             if (i != -1):
-                space_signature = space_signature[:i-1]
+                space_signature = space_signature[:i]
                 self.split_signature = space_signature.split(' ')
 
     def get_event(self):
         self.extract_acronym()
         self.extract_ordinal()
+        self.extract_date()
         self.extract_location()
         self.event.title = ' '.join(self.split_signature)
         return self.event
