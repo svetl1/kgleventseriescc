@@ -80,8 +80,7 @@ class CCtoGraph:
 				if (record.get("acronym") is not None):
 					record['acronym'] = self.normalizeAcronym(record.get("acronym"))
 
-				record['ordinal'] = (parser.guessOrdinal(record))
-
+				record['ordinal'] = parser.guessOrdinal(record)
 				if (record.get("title") is not None):
 					results = date_parser2.dateParser(record.get("title"))
 					if (results is not None):
@@ -89,11 +88,18 @@ class CCtoGraph:
 						record['endDate'] = results['endDate']
 					if(record.get("title").find("Workshop") == -1 and record.get("title").find("Workshops") == -1):
 						idList = re.split(r'[-]', record.get("eventId"))
+						record['title'] = parser.parseTitle(record.get("title"), record.get("acronym"),
+															str(record.get("year")))
+
+
 						if(len(idList) > 1 and idList[1].isnumeric()):
 							if(int(idList[1]) < 2):
 								self.addEvent(record, "DBLP")
+								#print(record.get("title"))
 						else:
 							self.addEvent(record, "DBLP")
+							#print(record.get("title"))
+
 
 
 		if (self.crossrefRecords is not None):
@@ -253,28 +259,72 @@ class CCtoGraph:
 			n.dayMonthRel = size((n)-[:same_dayMonth]-()) + (CASE WHEN n.startDate is Null and n.endDate is Null then 0 else 1 END)'''
 		graph.run(query)
 
+	def extractLocation(self, year, acronym):
+		query = f'''MATCH (n:Event{{year:{year}}}) WHERE n.acronym = "{acronym}"
+				RETURN n.city, n.country order by n.locationRel descending Limit 1'''
+		res = graph.run(query).data()
+		if(len(res) < 1):
+			return None
+		else:
+			return res[0]
+
+	def extractOrdinal(self, year, acronym):
+		query = f'''MATCH (n:Event{{year:{year}}}) WHERE n.acronym = "{acronym}"
+						RETURN n.ordinal order by n.ordinalRel descending Limit 1'''
+		res = graph.run(query).data()
+		if(len(res) < 1):
+			return None
+		else:
+			return res[0]
+
+
+	def extractMonthDay(self, year, acronym):
+		query = f'''MATCH (n:Event{{year:{year}}}) WHERE n.acronym = "{acronym}"
+							RETURN n.startDate, n.endDate order by n.monthDayRel descending Limit 1'''
+		res = graph.run(query).data()
+		if(len(res) < 1):
+			return None
+		else:
+			return res[0]
+
+	def extractTitle(self, year, acronym):
+		query = f'''MATCH (n:Event{{year:{year}}}) WHERE n.acronym = "{acronym}"
+						AND n.source = "confref"
+						RETURN n.title order by n.numOfRel descending Limit 1'''
+		res = graph.run(query).data()
+		if (len(res) > 0 and res[0].get("n.title") is not None):
+			res = res[0]
+			title = re.sub('\(|\)', '', res.get("n.title"))
+			res['n.title'] = re.sub(acronym, '', title)
+			return res
+		else:
+			query = f'''MATCH (n:Event{{year:{year}}}) WHERE n.acronym = "{acronym}"
+							AND n.source = "dblp"
+							RETURN n.title order by n.numOfRel descending Limit 1'''
+			res = graph.run(query).data()
+			if (len(res) > 0 and res[0].get("n.title") is not None):
+				res = res[0]
+				return res
+			else:
+				return None
+
+
 	def extractProperties(self, acronym: str):
-		query = f'''MATCH (n:Event) WHERE n.acronym = "{self.acronym}"
+		query = f'''MATCH (n:Event) WHERE n.acronym = "{acronym}"
 		RETURN distinct n.year Order by n.year'''
 		res = self.graph.run(query)
 		years = res.data()
 		for yearElement in years:
 			year = yearElement.get("n.year")
 			if(year is not None):
-				query = f'''MATCH (n:Event{{year:{year}}}) WHERE n.acronym = "{acronym}"
-				RETURN n.city, n.country order by n.locationRel descending Limit 1'''
-				location = graph.run(query).data()
-				query = f'''MATCH (n:Event{{year:{year}}}) WHERE n.acronym = "{acronym}"
-				RETURN n.ordinal order by n.ordinalRel descending Limit 1'''
-				ordinal = graph.run(query).data()
-				query = f'''MATCH (n:Event{{year:{year}}}) WHERE n.acronym = "{acronym}"
-				RETURN n.startDate, n.endDate order by n.monthDayRel descending Limit 1'''
-				monthDay = graph.run(query).data()
-
-			print("Results:*****")
-			print(location)
-			print(ordinal)
-			print(monthDay)
+				location = self.extractLocation(year, acronym)
+				ordinal = self.extractOrdinal(year, acronym)
+				monthDay = self.extractMonthDay(year, acronym)
+				title = self.extractTitle(year, acronym)
+				print(title or '-')
+				print(location or '-')
+				print(ordinal or '-')
+				print(monthDay or '-')
 
 	def startMatching(self, acronym):
 		if(not acronym in self.acronyms):
@@ -314,15 +364,15 @@ class CCtoGraph:
 
 myGraph = CCtoGraph(graph)
 myGraph.resetGraph()
-myGraph.startMatching("RTA")
-myGraph.startMatching("ISCAS")
-myGraph.startMatching("DEXA")
-#myGraph.startMatching("ISCA")
+#myGraph.startMatching("RTA")
 #myGraph.startMatching("ISCAS")
-myGraph.startMatching("AAAI")
+#myGraph.startMatching("DEXA")
+myGraph.startMatching("ISCA")
+#myGraph.startMatching("ISCAS")
+#myGraph.startMatching("AAAI")
 
 
-#myGraph.startExtracting("DEXA") #do this always after the startmatching
+myGraph.startExtracting("ISCA")
 
 
 

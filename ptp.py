@@ -7,11 +7,24 @@ class Ptp:
     def __init__(self):
         pass
 
-    def parseTitle(self, text : str):
+    def parseTitle(self, text : str, acronym : str, year : str):
         title = urllib.parse.quote_plus(text)
         res = requests.get("https://ptp.bitplan.com/parse?titles=" + title + "&examples=example1&format=json&metadebug=on")
         lods = res.json()
-        return lods
+        if(len(lods.get("events")) == 0):
+            return None
+        if(lods.get("events")[0].get("title") == None):
+            return None
+
+        title = (lods.get("events")[0].get("title"))
+        title = re.sub(acronym, '', title)
+        title = re.sub('\(|\)|\:', '', title)
+        title = re.sub(year, '', title).replace('   ', ' ')
+
+        return title
+
+
+
 
     def guessOrdinal(self, record: dict):
         """
@@ -42,5 +55,6 @@ class Ptp:
         else:
             return None
 
-ptpObject = Ptp()
-print(ptpObject.parseTitle("Proceedings of 3rd International Conference on Software Reuse, ICSR 1994, Rio De Janeiro, Brazil, November 1-4, 1994"))
+#ptpObject = Ptp()
+#res = (ptpObject.parseTitle("", "ICSR", "112"))
+#print(res)
