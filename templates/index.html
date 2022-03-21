@@ -1,16 +1,28 @@
-{% import 'macros.html' as macros %}
-{{ macros.header("Event Series Matching") }}
-{% if menuList %}{{ macros.menu(menuList) }}{% endif %}
-<br>
-<form action="/match" method="GET">
-    <div class="row">
-        <div class="col-md-6">
-            Enter a title of a scientific event:
-            <textarea id="input" name="input" rows="5" cols="100">{{ input }}</textarea>
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>Event Series Matching</h1>
+    <form action="/match" method="GET">
+        <div class="row">
+            <div class="col-md-6">
+                Please enter the event whose series you'd like to look up:
+                <textarea id="inputbox" name="input" rows="2" cols="200"></textarea>
+            </div>
         </div>
+        <div class="row">
+            <div id="matchcol" class="col-md-6">
+                <button type='submit' id="submitter">Search</button>
+            </div>
+        </div>
+        <div class="row">
+            <div id="sourcelink" class="col-md-6">
+                <a href="https://github.com/svetl1/kgleventseriescc" target="_blank"><i class="bi-github">GitHub Source Code</i></a>
+            </div>
+        </div>
+        {% if request.args.get("input") != None %}
+        {{result}} Series Data:
         <div id="matchresult" class="col-md-6">
             <div class="row">
-                {%if result is not none %}
                 <table class="table">
                     <thead>
                         <tr>
@@ -47,13 +59,5 @@
                 {% endif %}
             </div>
         </div>
-    </div>
-    <div class="row">
-        <div id="matchcol" class="col-md-6">
-            <button type='submit' id="match">search</button>
-        </div>
-    </div>
-</form>
-
-
-{{ macros.footer() }}
+    </form>
+{% endblock %}
