@@ -2,12 +2,12 @@ import re
 import date_parser2
 from py2neo import Graph
 import requests
-import ptp
+import parsingUtils
 
 graph = Graph("bolt://localhost:7687", auth=("", ""))
 
-months = ['January', 'Jan', 'February', 'Feb', 'March', 'Mar', 'April', 'Apr', '-', 'May', 'June', 'Jun', 'July', 'Jul', 'August', 'Aug', 'September', 'Sep', 'October', 'Oct', 'November', 'Nov', 'December', 'Dec']
-parser = ptp.Ptp()
+
+normalizer = parsingUtils.Normalizer()
 
 class CCtoGraph:
 	def __init__(self, graph: Graph):
@@ -28,47 +28,16 @@ class CCtoGraph:
 		qres = self.graph.run(query, params)
 		return qres
 
-	def normalizeAcronym(self, acronymString):
-		acronym = re.search(r'\b[A-Z]{4,}\b', input)
-		if (acronym is None):
-			return None
-		acronym = acronym.group()
-		return acronym
-
-	def normalizeCityId(self, cityIdString):
-		return cityIdString.replace('http://www.wikidata.org/entity/', '')
-
-	def normalizeDate(self, dateString):
-		dateList = re.split(r'[., \-]+', dateString)
-		months_found = [m for m in dateList if m in months]
-		i = dateList.index(months_found[0])
-		if (dateList[i - 1].isdigit() and len(dateList[i - 1]) < 3):
-			if(dateList[i-1][0] == "0"): #remove leading zero
-				dateList[i-1] = dateList[i-1][1:]
-			monthDay = months_found[0][0:3] + " " + dateList[i - 1]
-		else:
-			if (dateList[i + 1][0] == "0"):  # remove leading zero
-				dateList[i + 1] = dateList[i+1][1:]
-			monthDay = months_found[0][0:3] + " " + dateList[i + 1]
-		return monthDay
-
-	def normalizeNumToDate(self, dateString):
-		dateList = re.split(r'[-]', dateString)
-		if (dateList[2][0] == "0"):  # remove leading zero
-			dateList[2] = dateList[2][1:]
-		monthDay = months[(int(dateList[1]) * 2) - 1] + " " + dateList[2]
-		return monthDay
-
 	def addWikiCFP(self):
 		if (self.wikicfpRecords is not None):
 			for record in self.wikicfpRecords:
-				record['ordinal'] = parser.guessOrdinal(record)
+				record['ordinal'] = normalizer.guessOrdinal(record)
 				if (record.get("startDate") is not None):
-					record['startDate'] = self.normalizeDate(record.get("startDate"))
+					record['startDate'] = normalizer.normalizeDate(record.get("startDate"))
 				if (record.get("endDate") is not None):
-					record['endDate'] = self.normalizeDate(record.get("endDate"))
+					record['endDate'] = normalizer.normalizeDate(record.get("endDate"))
 				if (record.get("acronym") is not None):
-					record['acronym'] = self.normalizeAcronym(record.get("acronym"))
+					record['acronym'] = normalizer.normalizeAcronym(record.get("acronym"))
 				if (record.get("locality") is not None): # get location data from locality if city or country is None
 					localityData = re.split(r",\s|/|/\s", record.get("locality")) # inside r"" are the regular expressions to look for split with | . \s stay for white space as expression
 					if (record.get("city") is None):
@@ -82,9 +51,9 @@ class CCtoGraph:
 		if (self.dblpRecords is not None):
 			for record in self.dblpRecords:
 				if (record.get("acronym") is not None):
-					record['acronym'] = self.normalizeAcronym(record.get("acronym"))
+					record['acronym'] = normalizer.normalizeAcronym(record.get("acronym"))
 
-				record['ordinal'] = parser.guessOrdinal(record)
+				record['ordinal'] = normalizer.guessOrdinal(record)
 				if (record.get("title") is not None):
 					results = date_parser2.dateParser(record.get("title"))
 					if (results is not None):
@@ -92,7 +61,7 @@ class CCtoGraph:
 						record['endDate'] = results['endDate']
 					if(record.get("title").find("Workshop") == -1 and record.get("title").find("Workshops") == -1):
 						idList = re.split(r'[-]', record.get("eventId"))
-						record['title'] = parser.parseTitle(record.get("title"), record.get("acronym"),
+						record['title'] = normalizer.parseTitle(record.get("title"), record.get("acronym"),
 															str(record.get("year")))
 						if(len(idList) > 1 and idList[1].isnumeric()):
 							if(int(idList[1]) < 2):
@@ -106,15 +75,15 @@ class CCtoGraph:
 		if (self.crossrefRecords is not None):
 			for record in self.crossrefRecords:
 				if(record.get("number") is None):
-					record["ordinal"] = parser.guessOrdinal(record)
+					record["ordinal"] = normalizer.guessOrdinal(record)
 				else:
 					record["ordinal"] = record['number']
 				if (record.get("startDate") is not None):
-					record['startDate'] = self.normalizeDate(record.get("startDate"))
+					record['startDate'] = normalizer.normalizeDate(record.get("startDate"))
 				if (record.get("endDate") is not None):
-					record['endDate'] = self.normalizeDate(record.get("endDate"))
+					record['endDate'] = normalizer.normalizeDate(record.get("endDate"))
 				if (record.get("acronym") is not None):
-					record['acronym'] = self.normalizeAcronym(record.get("acronym"))
+					record['acronym'] = normalizer.normalizeAcronym(record.get("acronym"))
 				if (record.get("location") is not None and not record.get("location") == "Not Known"):
 					locationData = re.split(r",\s|/|/\s", record.get("location"))
 					if (record.get("city") is None):
@@ -129,13 +98,13 @@ class CCtoGraph:
 		if (self.wikidataRecords is not None):
 			for record in self.wikidataRecords:
 				if (record.get("acronym") is not None):
-					record['acronym'] = self.normalizeAcronym(record.get("acronym"))
+					record['acronym'] = normalizer.normalizeAcronym(record.get("acronym"))
 				if (record.get("cityId") is not None):
-					record['cityWikidataid'] = self.normalizeCityId(record.get("cityId"))
+					record['cityWikidataid'] = normalizer.normalizeCityId(record.get("cityId"))
 				if (record.get("startDate") is not None):
-					record['startDate'] = self.normalizeDate(record.get("startDate"))
+					record['startDate'] = normalizer.normalizeDate(record.get("startDate"))
 				if (record.get("endDate") is not None):
-					record['endDate'] = self.normalizeDate(record.get("endDate"))
+					record['endDate'] = normalizer.normalizeDate(record.get("endDate"))
 				if (record.get("city") is None):
 					if (record.get("location") is not None):
 						record['city'] = record.get("location")
@@ -145,9 +114,9 @@ class CCtoGraph:
 		if (self.confrefRecords is not None):
 			for record in self.confrefRecords:
 				if (record.get("startDate") is not None):
-					record['startDate'] = self.normalizeNumToDate(record.get("startDate"))
+					record['startDate'] = normalizer.normalizeNumToDate(record.get("startDate"))
 				if (record.get("endDate") is not None):
-					record['endDate'] = self.normalizeNumToDate(record.get("endDate"))
+					record['endDate'] = normalizer.normalizeNumToDate(record.get("endDate"))
 				self.addEvent(record, "confref")
 		# print(str(record['location'] or '-') + "  city: " + str(record['city'] or '-') + " country: " + str(
 		# record['country'] or '-') + "TITLE: " + record['title'])
@@ -390,11 +359,11 @@ myGraph.resetGraph()
 #myGraph.startMatching("ISCAS")
 #myGraph.startMatching("DEXA")
 #myGraph.startMatching("ISCA")
-#myGraph.startMatching("ISCAS")
-myGraph.startMatching("AAAI")
+myGraph.startMatching("SAST")
+#myGraph.startMatching("AAAI")
 
 
-myGraph.startExtracting("AAAI")
+#myGraph.startExtracting("AAAI")
 
 
 

@@ -2,7 +2,10 @@ import urllib
 import requests
 import re
 from num2words import num2words
-class Ptp:
+
+months = ['January', 'Jan', 'February', 'Feb', 'March', 'Mar', 'April', 'Apr', '-', 'May', 'June', 'Jun', 'July', 'Jul', 'August', 'Aug', 'September', 'Sep', 'October', 'Oct', 'November', 'Nov', 'December', 'Dec']
+
+class Normalizer:
 
     def __init__(self):
         pass
@@ -52,14 +55,37 @@ class Ptp:
         else:
             return None
 
-
-    def getAcronym(self, input: str):
-        acronym = re.search(r'\b[A-Z]{4,}\b', input)
-        if(acronym is None):
+    def normalizeAcronym(self, acronymString):
+        acronym = re.search(r'\b[A-Z]{4,}\b', acronymString)
+        if (acronym is None):
             return None
         acronym = acronym.group()
         return acronym
 
-ptpObject = Ptp()
-res = ptpObject.getAcronym("Proceedings of the 22nd Annual International Symposium on Computer Architecture,  '95, Santa Margherita Ligure, Italy, June 22-24, 1995")
-print(res)
+    def normalizeCityId(self, cityIdString):
+        return cityIdString.replace('http://www.wikidata.org/entity/', '')
+
+    def normalizeDate(self, dateString):
+        dateList = re.split(r'[., \-]+', dateString)
+        months_found = [m for m in dateList if m in months]
+        i = dateList.index(months_found[0])
+        if (dateList[i - 1].isdigit() and len(dateList[i - 1]) < 3):
+            if (dateList[i - 1][0] == "0"):  # remove leading zero
+                dateList[i - 1] = dateList[i - 1][1:]
+            monthDay = months_found[0][0:3] + " " + dateList[i - 1]
+        else:
+            if (dateList[i + 1][0] == "0"):  # remove leading zero
+                dateList[i + 1] = dateList[i + 1][1:]
+            monthDay = months_found[0][0:3] + " " + dateList[i + 1]
+        return monthDay
+
+    def normalizeNumToDate(self, dateString):
+        dateList = re.split(r'[-]', dateString)
+        if (dateList[2][0] == "0"):  # remove leading zero
+            dateList[2] = dateList[2][1:]
+        monthDay = months[(int(dateList[1]) * 2) - 1] + " " + dateList[2]
+        return monthDay
+
+#ptpObject = Ptp()
+#res = ptpObject.getAcronym("Proceedings of the 22nd Annual International Symposium on Computer Architecture,  '95, Santa Margherita Ligure, Italy, June 22-24, 1995")
+#print(res)
