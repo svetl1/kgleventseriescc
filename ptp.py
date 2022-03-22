@@ -23,9 +23,6 @@ class Ptp:
 
         return title
 
-
-
-
     def guessOrdinal(self, record: dict):
         """
         tries to guess the ordinal of the given record by returning a set of potential ordinals
@@ -55,6 +52,14 @@ class Ptp:
         else:
             return None
 
-#ptpObject = Ptp()
-#res = (ptpObject.parseTitle("", "ICSR", "112"))
-#print(res)
+
+    def getAcronym(self, input: str):
+        acronym = re.search(r'\b[A-Z]{4,}\b', input)
+        if(acronym is None):
+            return None
+        acronym = acronym.group()
+        return acronym
+
+ptpObject = Ptp()
+res = ptpObject.getAcronym("Proceedings of the 22nd Annual International Symposium on Computer Architecture,  '95, Santa Margherita Ligure, Italy, June 22-24, 1995")
+print(res)

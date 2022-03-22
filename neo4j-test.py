@@ -14,6 +14,8 @@ class CCtoGraph:
 		self.graph = graph
 		self.acronyms = []
 
+	queryCondition = "NOT exists((n)-[]-(:Acronym)) AND NOT exists((m)-[]-(:Acronym))"
+
 	def addEvent(self, event: dict, source):
 		event['matches'] = "empty"
 		event['numOfRel'] = 0
@@ -27,10 +29,11 @@ class CCtoGraph:
 		return qres
 
 	def normalizeAcronym(self, acronymString):
-		listForAcronym = re.split(r'[., \-:]+', acronymString)
-		for element in listForAcronym:
-			if (element.isupper()):
-				return element
+		acronym = re.search(r'\b[A-Z]{4,}\b', input)
+		if (acronym is None):
+			return None
+		acronym = acronym.group()
+		return acronym
 
 	def normalizeCityId(self, cityIdString):
 		return cityIdString.replace('http://www.wikidata.org/entity/', '')
@@ -56,7 +59,7 @@ class CCtoGraph:
 		monthDay = months[(int(dateList[1]) * 2) - 1] + " " + dateList[2]
 		return monthDay
 
-	def addAll(self):
+	def addWikiCFP(self):
 		if (self.wikicfpRecords is not None):
 			for record in self.wikicfpRecords:
 				record['ordinal'] = parser.guessOrdinal(record)
@@ -75,6 +78,7 @@ class CCtoGraph:
 				# print(str(record['locality'] or '-') + "  city: " + str(record['city'] or '-') + " country: " + str(record['country'] or '-'))
 				self.addEvent(record, "wikiCFP")
 
+	def addDBLP(self):
 		if (self.dblpRecords is not None):
 			for record in self.dblpRecords:
 				if (record.get("acronym") is not None):
@@ -90,8 +94,6 @@ class CCtoGraph:
 						idList = re.split(r'[-]', record.get("eventId"))
 						record['title'] = parser.parseTitle(record.get("title"), record.get("acronym"),
 															str(record.get("year")))
-
-
 						if(len(idList) > 1 and idList[1].isnumeric()):
 							if(int(idList[1]) < 2):
 								self.addEvent(record, "DBLP")
@@ -100,8 +102,7 @@ class CCtoGraph:
 							self.addEvent(record, "DBLP")
 							#print(record.get("title"))
 
-
-
+	def addCrossRef(self):
 		if (self.crossrefRecords is not None):
 			for record in self.crossrefRecords:
 				if(record.get("number") is None):
@@ -120,13 +121,11 @@ class CCtoGraph:
 						record['city'] = locationData[0]
 					if (record.get("country") is None):
 						record['country'] = locationData[len(locationData) - 1]
-				'''if (record.get("title") is None or (
-						record.get("title").find("Proceedings") == -1 and record.get("title").find(
-						"Proceeding") == -1)):'''
 				self.addEvent(record, "crossref")
 			# print(str(record['location'] or '-') + "  city: " + str(record['city'] or '-') + " country: " + str(
 			# record['country'] or '-') + "TITLE: " + record['title'])
 
+	def addWikiData(self):
 		if (self.wikidataRecords is not None):
 			for record in self.wikidataRecords:
 				if (record.get("acronym") is not None):
@@ -142,6 +141,7 @@ class CCtoGraph:
 						record['city'] = record.get("location")
 				self.addEvent(record, "wikiData")
 
+	def addConfRef(self):
 		if (self.confrefRecords is not None):
 			for record in self.confrefRecords:
 				if (record.get("startDate") is not None):
@@ -152,7 +152,12 @@ class CCtoGraph:
 		# print(str(record['location'] or '-') + "  city: " + str(record['city'] or '-') + " country: " + str(
 		# record['country'] or '-') + "TITLE: " + record['title'])
 
-	queryCondition = "NOT exists((n)-[]-(:Acronym)) AND NOT exists((m)-[]-(:Acronym))"
+	def addAll(self):
+		self.addWikiCFP()
+		self.addDBLP()
+		self.addCrossRef()
+		self.addWikiData()
+		self.addConfRef()
 
 	def filterAcronym(self):
 		query = f'''MATCH(n: Event) WHERE NOT exists((n)-[]-(:Acronym)) AND NOT n.acronym = "{self.acronym}" OR n.acronym IS NULL DETACH DELETE n'''
