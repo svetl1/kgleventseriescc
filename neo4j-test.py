@@ -261,7 +261,7 @@ class CCtoGraph:
 
 	def extractLocation(self, year, acronym):
 		query = f'''MATCH (n:Event{{year:{year}}}) WHERE n.acronym = "{acronym}"
-				RETURN n.city, n.country order by n.locationRel descending Limit 1'''
+				RETURN n.city as city, n.country as country order by n.locationRel descending Limit 1'''
 		res = graph.run(query).data()
 		if(len(res) < 1):
 			return None
@@ -270,7 +270,7 @@ class CCtoGraph:
 
 	def extractOrdinal(self, year, acronym):
 		query = f'''MATCH (n:Event{{year:{year}}}) WHERE n.acronym = "{acronym}"
-						RETURN n.ordinal order by n.ordinalRel descending Limit 1'''
+						RETURN n.ordinal as ordinal order by n.ordinalRel descending Limit 1'''
 		res = graph.run(query).data()
 		if(len(res) < 1):
 			return None
@@ -280,7 +280,7 @@ class CCtoGraph:
 
 	def extractMonthDay(self, year, acronym):
 		query = f'''MATCH (n:Event{{year:{year}}}) WHERE n.acronym = "{acronym}"
-							RETURN n.startDate, n.endDate order by n.monthDayRel descending Limit 1'''
+							RETURN n.startDate as startDate, n.endDate as endDate order by n.monthDayRel descending Limit 1'''
 		res = graph.run(query).data()
 		if(len(res) < 1):
 			return None
@@ -290,46 +290,58 @@ class CCtoGraph:
 	def extractTitle(self, year, acronym):
 		query = f'''MATCH (n:Event{{year:{year}}}) WHERE n.acronym = "{acronym}"
 						AND n.source = "confref"
-						RETURN n.title order by n.numOfRel descending Limit 1'''
+						RETURN n.title as title order by n.numOfRel descending Limit 1'''
 		res = graph.run(query).data()
-		if (len(res) > 0 and res[0].get("n.title") is not None):
+		if (len(res) > 0 and res[0].get("title") is not None):
 			res = res[0]
-			title = re.sub('\(|\)', '', res.get("n.title"))
-			res['n.title'] = re.sub(acronym, '', title)
+			title = re.sub('\(|\)', '', res.get("title"))
+			res['title'] = re.sub(acronym, '', title)
 			return res
 		else:
 			query = f'''MATCH (n:Event{{year:{year}}}) WHERE n.acronym = "{acronym}"
 							AND n.source = "dblp"
-							RETURN n.title order by n.numOfRel descending Limit 1'''
+							RETURN n.title as title order by n.numOfRel descending Limit 1'''
 			res = graph.run(query).data()
-			if (len(res) > 0 and res[0].get("n.title") is not None):
+			if (len(res) > 0 and res[0].get("title") is not None):
 				res = res[0]
 				return res
 			else:
-				return {'n.title': '-'}
+				return {'title': '-'}
 
+	def extractSources(self, year, acronym):
+		query = f'''MATCH (n:Event{{year:{year}}}) WHERE n.acronym = "{acronym}"
+		return distinct n.source as source, collect(n.eventId) as eventId'''
+		res = graph.run(query).data()
+		sources = {}
+		for result in res:
+			key = result['source']
+			value = result['eventId'][0]
+			sources.update({key : value})
+		return sources
 
 	def extractProperties(self, acronym: str):
 		query = f'''MATCH (n:Event) WHERE n.acronym = "{acronym}"
-		RETURN distinct n.year Order by n.year desc'''
+		RETURN distinct n.year as year Order by n.year desc'''
 		res = self.graph.run(query)
 		years = res.data()
 		resList = []
 		for yearElement in years:
-			year = yearElement.get("n.year")
+			year = yearElement.get("year")
 			if(year is not None):
 				location = self.extractLocation(year, acronym)
 				ordinal = self.extractOrdinal(year, acronym)
 				monthDay = self.extractMonthDay(year, acronym)
 				title = self.extractTitle(year, acronym)
+				sources = self.extractSources(year, acronym)
 				row = {year:{}}
 				row[year].update(location)
 				row[year].update(ordinal)
 				row[year].update(monthDay)
 				row[year].update(title)
+				row[year].update(sources)
 				#print(row or '-')
 				resList.append(row)
-		print(resList)
+		#print(resList)
 		return resList
 	def startMatching(self, acronym):
 		if(not acronym in self.acronyms):
@@ -359,7 +371,7 @@ class CCtoGraph:
 		self.match(1)
 		self.eliminateNonMatch()
 		self.setForExtraction()
-		self.bindToAcronym()
+		#self.bindToAcronym()
 
 
 	def startExtracting(self, acronym):
@@ -372,12 +384,12 @@ myGraph.resetGraph()
 #myGraph.startMatching("RTA")
 #myGraph.startMatching("ISCAS")
 #myGraph.startMatching("DEXA")
-myGraph.startMatching("ISCA")
+#myGraph.startMatching("ISCA")
 #myGraph.startMatching("ISCAS")
-#myGraph.startMatching("AAAI")
+myGraph.startMatching("AAAI")
 
 
-myGraph.startExtracting("ISCA")
+myGraph.startExtracting("AAAI")
 
 
 
