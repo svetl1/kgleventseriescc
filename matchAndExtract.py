@@ -121,7 +121,14 @@ class CCtoGraph:
 		# print(str(record['location'] or '-') + "  city: " + str(record['city'] or '-') + " country: " + str(
 		# record['country'] or '-') + "TITLE: " + record['title'])
 
-	def addAll(self):
+	def getAndAddAll(self, acronym):
+		res = requests.get("https://conferencecorpus.bitplan.com/eventseries/" + acronym)
+		lods = res.json()
+		self.wikidataRecords = lods.get("wikidata")
+		self.wikicfpRecords = lods.get("wikicfp")
+		self.dblpRecords = lods.get("dblp")
+		self.confrefRecords = lods.get("confref")
+		self.crossrefRecords = lods.get("crossref")
 		self.addWikiCFP()
 		self.addDBLP()
 		self.addCrossRef()
@@ -317,6 +324,7 @@ class CCtoGraph:
 				resList.append(row)
 		#print(resList)
 		return resList
+
 	def startMatching(self, acronym):
 		if(not acronym in self.acronyms):
 			self.acronyms.append(acronym)
@@ -324,14 +332,7 @@ class CCtoGraph:
 			print(acronym + " already in graph")
 			return
 		self.acronym = acronym
-		res = requests.get("https://conferencecorpus.bitplan.com/eventseries/" + acronym)
-		lods = res.json()
-		self.wikidataRecords = lods.get("wikidata")
-		self.wikicfpRecords = lods.get("wikicfp")
-		self.dblpRecords = lods.get("dblp")
-		self.confrefRecords = lods.get("confref")
-		self.crossrefRecords = lods.get("crossref")
-		self.addAll()
+		self.getAndAddAll(acronym)
 		self.filterAcronym()
 		self.dayMonthRelation()
 		self.locationRelation()
@@ -349,8 +350,11 @@ class CCtoGraph:
 
 
 	def startExtracting(self, acronym):
+		if (not acronym in self.acronyms):
+			return None
+		print(self.extractProperties(acronym))
+		#return self.extractProperties(acronym)
 
-		self.extractProperties(acronym)
 
 
 myGraph = CCtoGraph(graph)
@@ -363,7 +367,7 @@ myGraph.startMatching("SAST")
 #myGraph.startMatching("AAAI")
 
 
-#myGraph.startExtracting("AAAI")
+myGraph.startExtracting("SAST")
 
 
 
