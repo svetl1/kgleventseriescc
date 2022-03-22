@@ -306,14 +306,15 @@ class CCtoGraph:
 				res = res[0]
 				return res
 			else:
-				return None
+				return {'n.title': '-'}
 
 
 	def extractProperties(self, acronym: str):
 		query = f'''MATCH (n:Event) WHERE n.acronym = "{acronym}"
-		RETURN distinct n.year Order by n.year'''
+		RETURN distinct n.year Order by n.year desc'''
 		res = self.graph.run(query)
 		years = res.data()
+		resList = []
 		for yearElement in years:
 			year = yearElement.get("n.year")
 			if(year is not None):
@@ -321,11 +322,15 @@ class CCtoGraph:
 				ordinal = self.extractOrdinal(year, acronym)
 				monthDay = self.extractMonthDay(year, acronym)
 				title = self.extractTitle(year, acronym)
-				print(title or '-')
-				print(location or '-')
-				print(ordinal or '-')
-				print(monthDay or '-')
-
+				row = {year:{}}
+				row[year].update(location)
+				row[year].update(ordinal)
+				row[year].update(monthDay)
+				row[year].update(title)
+				#print(row or '-')
+				resList.append(row)
+		print(resList)
+		return resList
 	def startMatching(self, acronym):
 		if(not acronym in self.acronyms):
 			self.acronyms.append(acronym)
