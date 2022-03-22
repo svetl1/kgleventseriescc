@@ -371,7 +371,7 @@ class CCtoGraph:
 		self.match(1)
 		self.eliminateNonMatch()
 		self.setForExtraction()
-		#self.bindToAcronym()
+		self.bindToAcronym()
 
 
 	def startExtracting(self, acronym):
