@@ -6,6 +6,7 @@ from fb4.icons_bp import IconsBlueprint
 from fb4.sse_bp import SSE_BluePrint
 from fb4.widgets import Link, Icon, Image, Menu, MenuItem, DropDownMenu, LodTable, DropZoneField, ButtonField
 from flask import render_template, request, flash, Markup, url_for, abort
+from lodstorage.lod import LOD
 from flask_wtf import FlaskForm
 from wtforms import SubmitField, TextAreaField
 from wtforms.validators import DataRequired, Length
@@ -15,6 +16,7 @@ import os
 import http.client
 import re
 import time
+import copy
 from werkzeug.utils import secure_filename
 
 
@@ -52,8 +54,59 @@ class App(AppWrap):
                 # This is the main one, edit with classes to be called
                 input = request.args.get("input")
                 return self.home(result=input)
+                #return self.home(result=input, table=self.getHtmlTables())
 
+    def getHtmlTables(self, tablelod):
+        """
+        Converts the given tables into a html table
+        Args:
+            table:
+        Returns:
+        """
+        lods = copy.deepcopy(tablelod.lods)
+        valueMap = self.propertyToLinkMap()
+        eventLod = self.convertLodValues(lods, valueMap)
+        eventPropertyOrder = ["Ordinal", "Year", "City", "Start date", "End date", "Title",
+                              "Series", "wikidataId", "wikicfpId", "DblpConferenceId", "TibKatId"]
+        eventFields = LOD.getFields(eventLod)
+        eventHeaders = {**{v: v for v in eventPropertyOrder if v in eventFields},
+                        **{v: v for v in eventFields if v not in eventPropertyOrder}}
+        eventsTable = LodTable(eventLod, headers=eventHeaders, name="Events", isDatatable=True)
+        return eventsTable
 
+    def propertyToLinkMap(self) -> dict:
+        """
+        Returns a mapping to convert a property to the corresponding link
+        """
+        map = {
+            "wikidataId": lambda value: Link(url=f"https://www.wikidata.org/wiki/{value}", title=value),
+            "WikiCfpSeries": lambda value: Link(url=f"http://www.wikicfp.com/cfp/program?id={value}", title=value),
+            "wikicfpId": lambda value: Link(url=f"http://www.wikicfp.com/cfp/servlet/event.showcfp?eventid={value}",
+                                            title=value),
+            "DblpConferenceId": lambda value: Link(url=f"https://dblp2.uni-trier.de/db/conf/{value}", title=value),
+            "DblpSeries": lambda value: Link(url=f"https://dblp.org/db/conf/{value}/index.html", title=value),
+            "TibKatId": lambda value: Link(url=f"https://www.tib.eu/en/search/id/TIBKAT:{value}", title=value),
+            "Ordinal": lambda value: int(value) if isinstance(value, float) and value.is_integer() else value
+        }
+        return map
+
+    @staticmethod
+    def convertLodValues(lod: list, valueMap: dict):
+        """
+        Converts the lod values based on the given map of key to convert functions
+        Args:
+            lod: list of dicts to convert
+            valueMap: map of lod keys to convert functions
+        Returns:
+            lod
+        """
+        if lod is None:
+            return lod
+        for record in lod.copy():
+            for key, function in valueMap.items():
+                if key in record:
+                    record[key] = function(record[key])
+        return lod
 
     def getDisplayIcons(self, icons):
         displayIcons = []
