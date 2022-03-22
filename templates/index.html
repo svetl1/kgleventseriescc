@@ -36,7 +36,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for event in result %}
+                        {% for event in data %}
                         <tr>
                             <th scope="row">{{ loop.index }}</th>
                             <td>{{event.year}}</td>
@@ -50,6 +50,9 @@
                     </tbody>
                 </table>
                 {% endif %}
+            </div>
+            <div>
+                {{ table|safe }}
             </div>
             <!-- result metadata optional from here -->
             <!-- errors -->
