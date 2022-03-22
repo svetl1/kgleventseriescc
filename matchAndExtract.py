@@ -352,8 +352,8 @@ class CCtoGraph:
 	def startExtracting(self, acronym):
 		if (not acronym in self.acronyms):
 			return None
-		print(self.extractProperties(acronym))
-		#return self.extractProperties(acronym)
+		#print(self.extractProperties(acronym))
+		return self.extractProperties(acronym)
 
 
 
