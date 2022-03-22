@@ -1,24 +1,14 @@
 # -*- coding: utf-8 -*-
-import uuid
 
 from fb4.app import AppWrap
 
 from fb4.widgets import Link, LodTable
-from flask import render_template, request, flash, Markup, url_for, abort
+from flask import render_template, request
 from lodstorage.lod import LOD
 from py2neo import Graph
-from wtforms import SubmitField, TextAreaField
-from wtforms.validators import DataRequired, Length
-from datetime import datetime, timedelta
-import json
 import os
-import http.client
-import re
-import time
 import copy
-from werkzeug.utils import secure_filename
-import parsingUtils
-import matchAndExtract
+from matching import matchAndExtract, parsingUtils
 
 
 class App(AppWrap):
