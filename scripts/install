@@ -1,4 +1,4 @@
-#$install python3-pip
+# $install python3-pip
 $pip --version
 # --force-reinstall
-$pip install  -r requirements.txt --user
+$pip install  -r requirements.txt
