@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 
-from fb4.app import AppWrap
+import copy
+import os
 
+from fb4.app import AppWrap
 from fb4.widgets import Link, LodTable
 from flask import render_template, request
 from lodstorage.lod import LOD
 from py2neo import Graph
-import os
-import copy
-from matching import matchAndExtract, parsingUtils
+import matchAndExtract
+import parsingUtils
 
 
 class App(AppWrap):
@@ -61,7 +62,7 @@ class App(AppWrap):
             table:
         Returns:
         """
-        lods = copy.deepcopy(tablelod.lods)
+        lods = copy.deepcopy(tablelod)
         valueMap = self.propertyToLinkMap()
         eventLod = self.convertLodValues(lods, valueMap)
         eventPropertyOrder = ["Ordinal", "Year", "City", "Start date", "End date", "Title",
