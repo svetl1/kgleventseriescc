@@ -48,8 +48,4 @@ jobs:
       
       - name: Install dependencies
         run: |
-          scripts/install
-          
-      - name: Run tests
-        run: |
-          scripts/test    
+          scripts/install   
