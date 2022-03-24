@@ -311,7 +311,7 @@ class CCtoGraph:
 		RETURN distinct n.year as year Order by n.year desc'''
 		res = self.graph.run(query)
 		years = res.data()
-		resList = []
+		resDict = {}
 		for yearElement in years:
 			year = yearElement.get("year")
 			if(year is not None):
@@ -320,16 +320,17 @@ class CCtoGraph:
 				monthDay = self.extractMonthDay(year, acronym)
 				title = self.extractTitle(year, acronym)
 				sources = self.extractSources(year, acronym)
-				row = {year:{}}
-				row[year].update(location)
-				row[year].update(ordinal)
-				row[year].update(monthDay)
-				row[year].update(title)
-				row[year].update(sources)
+				row = {}
+				row.update(location)
+				row.update(ordinal)
+				row.update(monthDay)
+				row.update(title)
+				row.update(sources)
+				resDict[year] = row
 				#print(row or '-')
-				resList.update(row)
 		#print(resList)
-		return resList
+		print(resDict)
+		return resDict
 
 	def startMatching(self, acronym):
 		if(not acronym in self.acronyms):

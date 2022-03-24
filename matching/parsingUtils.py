@@ -5,7 +5,7 @@ from num2words import num2words
 import geograpy
 
 months = ['January', 'Jan', 'February', 'Feb', 'March', 'Mar', 'April', 'Apr', '-', 'May', 'June', 'Jun', 'July', 'Jul', 'August', 'Aug', 'September', 'Sep', 'October', 'Oct', 'November', 'Nov', 'December', 'Dec']
-
+locator = geograpy.locator.LocationContext.fromCache()
 class Normalizer:
 
     def __init__(self):
@@ -88,7 +88,7 @@ class Normalizer:
         return monthDay
 
     def extract_location(self, title):
-        locator = geograpy.locator.LocationContext.fromCache()
+
         list = {}
         if (locator is not None):
             if(len(locator.locateLocation(title, verbose=True)) < 1):
