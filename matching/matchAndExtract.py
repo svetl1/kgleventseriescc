@@ -65,7 +65,6 @@ class CCtoGraph:
 						idList = re.split(r'[-]', record.get("eventId"))
 						list = normalizer.extract_location(record.get("title"))
 						if(len(list) == 2):
-							print(list)
 							record["city"] = list["city"]
 							record["country"] = list["country"]
 						record['title'] = normalizer.parseTitle(record.get("title"), record.get("acronym"),
@@ -328,7 +327,7 @@ class CCtoGraph:
 				row[year].update(title)
 				row[year].update(sources)
 				#print(row or '-')
-				resList.append(row)
+				resList.update(row)
 		#print(resList)
 		return resList
 
@@ -369,7 +368,7 @@ myGraph.resetGraph()
 #myGraph.getAndAddAll("SAST")
 #myGraph.startMatching("RTA")
 #myGraph.startMatching("ISCAS")
-#myGraph.startMatching("DEXA")
+myGraph.startMatching("DEXA")
 #myGraph.startMatching("ISCA")
 #myGraph.startMatching("SAST")
 #myGraph.startMatching("AAAI")
