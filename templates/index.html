@@ -5,7 +5,7 @@
     <form action="/match" method="GET">
         <div class="row">
             <div class="col-md-6">
-                Please enter the event whose series you'd like to look up:
+                Please enter the acronym (and any extra known data) of the event whose series you'd like to look up:
                 <textarea id="inputbox" name="input" rows="2" cols="200"></textarea>
             </div>
         </div>
@@ -21,6 +21,7 @@
         </div>
         {% if request.args.get("input") != None %}
         {{result}} Series Data:
+        {{data|safe}}
         <div id="matchresult" class="col-md-6">
             <div class="row">
                 <table class="table">
@@ -36,7 +37,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for event in result %}
+                        {% for event in data %}
                         <tr>
                             <th scope="row">{{ loop.index }}</th>
                             <td>{{event.year}}</td>
@@ -50,6 +51,9 @@
                     </tbody>
                 </table>
                 {% endif %}
+            </div>
+            <div>
+                {{ table|safe }}
             </div>
             <!-- result metadata optional from here -->
             <!-- errors -->
