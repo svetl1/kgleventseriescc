@@ -2,6 +2,7 @@ import urllib
 import requests
 import re
 from num2words import num2words
+import geograpy
 
 months = ['January', 'Jan', 'February', 'Feb', 'March', 'Mar', 'April', 'Apr', '-', 'May', 'June', 'Jun', 'July', 'Jul', 'August', 'Aug', 'September', 'Sep', 'October', 'Oct', 'November', 'Nov', 'December', 'Dec']
 
@@ -86,6 +87,18 @@ class Normalizer:
         monthDay = months[(int(dateList[1]) * 2) - 1] + " " + dateList[2]
         return monthDay
 
-#ptpObject = Ptp()
-#res = ptpObject.getAcronym("Proceedings of the 22nd Annual International Symposium on Computer Architecture,  '95, Santa Margherita Ligure, Italy, June 22-24, 1995")
-#print(res)
+    def extract_location(self, title):
+        locator = geograpy.locator.LocationContext.fromCache()
+        list = {}
+        if (locator is not None):
+            if(len(locator.locateLocation(title, verbose=True)) < 1):
+                return list
+            s1 = str(locator.locateLocation(title, verbose=True)[0]).split(" ", 1)
+            city = s1[0]
+            s2 = re.findall(r'\(.*?\)', s1[1][1:-1])
+            #region = s2[0][1:-1]
+            country = s2[1][1:-1]
+
+            list['city'] = city
+            list['country'] = country
+            return list

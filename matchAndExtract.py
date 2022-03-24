@@ -4,6 +4,7 @@ from py2neo import Graph
 import requests
 import parsingUtils
 
+
 graph = Graph("bolt://localhost:7687", auth=("", ""))
 
 
@@ -27,6 +28,7 @@ class CCtoGraph:
 		params = {"event": event}
 		qres = self.graph.run(query, params)
 		return qres
+
 
 	def addWikiCFP(self):
 		if (self.wikicfpRecords is not None):
@@ -61,6 +63,11 @@ class CCtoGraph:
 						record['endDate'] = results['endDate']
 					if(record.get("title").find("Workshop") == -1 and record.get("title").find("Workshops") == -1):
 						idList = re.split(r'[-]', record.get("eventId"))
+						list = normalizer.extract_location(record.get("title"))
+						if(len(list) == 2):
+							print(list)
+							record["city"] = list["city"]
+							record["country"] = list["country"]
 						record['title'] = normalizer.parseTitle(record.get("title"), record.get("acronym"),
 															str(record.get("year")))
 						if(len(idList) > 1 and idList[1].isnumeric()):
@@ -359,16 +366,16 @@ class CCtoGraph:
 
 myGraph = CCtoGraph(graph)
 myGraph.resetGraph()
+#myGraph.getAndAddAll("SAST")
 #myGraph.startMatching("RTA")
 #myGraph.startMatching("ISCAS")
 #myGraph.startMatching("DEXA")
 #myGraph.startMatching("ISCA")
-myGraph.startMatching("SAST")
+#myGraph.startMatching("SAST")
 #myGraph.startMatching("AAAI")
 
 
-myGraph.startExtracting("SAST")
-
+#myGraph.startExtracting("SAST")
 
 
 
