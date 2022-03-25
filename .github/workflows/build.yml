@@ -48,4 +48,4 @@ jobs:
       
       - name: Install dependencies
         run: |
-          scripts/install   
+          bash scripts/install   
