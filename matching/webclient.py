@@ -53,7 +53,6 @@ class App(AppWrap):
                 lod = matcher.extractProperties(acronym)
                 return self.home(result=acronym, data=lod, table=self.getHtmlTables(lod))
 
-                # return self.home(result=acronym)
 
     def getHtmlTables(self, tablelod):
         """
@@ -62,11 +61,12 @@ class App(AppWrap):
             table:
         Returns:
         """
-        lods = copy.deepcopy(tablelod)
+        lods = copy.deepcopy(list(tablelod.values()))
+
         valueMap = self.propertyToLinkMap()
         eventLod = self.convertLodValues(lods, valueMap)
-        eventPropertyOrder = ["Ordinal", "Year", "City", "Start date", "End date", "Title",
-                              "Series", "wikidataId", "wikicfpId", "DblpConferenceId", "TibKatId"]
+        eventPropertyOrder = ["ordinal", "title", "startDate", "endDate", "year", "city", "country", "wikidata",
+                              "wikicfp", "dblp", "confref", "crossref"]
         eventFields = LOD.getFields(eventLod)
         eventHeaders = {**{v: v for v in eventPropertyOrder if v in eventFields},
                         **{v: v for v in eventFields if v not in eventPropertyOrder}}
@@ -78,14 +78,14 @@ class App(AppWrap):
         Returns a mapping to convert a property to the corresponding link
         """
         map = {
-            "wikidataId": lambda value: Link(url=f"https://www.wikidata.org/wiki/{value}", title=value),
-            "WikiCfpSeries": lambda value: Link(url=f"http://www.wikicfp.com/cfp/program?id={value}", title=value),
-            "wikicfpId": lambda value: Link(url=f"http://www.wikicfp.com/cfp/servlet/event.showcfp?eventid={value}",
-                                            title=value),
-            "DblpConferenceId": lambda value: Link(url=f"https://dblp2.uni-trier.de/db/conf/{value}", title=value),
-            "DblpSeries": lambda value: Link(url=f"https://dblp.org/db/conf/{value}/index.html", title=value),
+            "wikidata": lambda value: Link(url=f"https://www.wikidata.org/wiki/{value}", title=value),
+            "wikicfp": lambda value: Link(url=f"http://www.wikicfp.com/cfp/servlet/event.showcfp?eventid={value}",
+                                          title=value),
+            "dblp": lambda value: Link(url=f"https://dblp2.uni-trier.de/db/{value}", title=value),
             "TibKatId": lambda value: Link(url=f"https://www.tib.eu/en/search/id/TIBKAT:{value}", title=value),
-            "Ordinal": lambda value: int(value) if isinstance(value, float) and value.is_integer() else value
+            "ordinal": lambda value: int(value) if isinstance(value, float) and value.is_integer() else value
+            #,"confref": lambda value: Link(),
+            #"crossref": lambda value: Link()
         }
         return map
 
