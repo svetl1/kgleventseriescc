@@ -1,0 +1,3 @@
+echo "Setting up webclient"
+python="python"
+$python matching/webclient.py
