@@ -10,6 +10,6 @@ Make sure the newest version of Python is installed, as is Docker and its neo4j 
 
 Run `scripts\install` to make sure all prerequisites are installed.
 
-To launch the service locally, run `scripts\docker` and `scripts\webclient` and keep the windows open while using the service.
+To launch the service locally, run `scripts\docker` and `scripts\webclient` and keep both command prompts/shell windows open while using the service.
 
-The service should now be running on `localhost:8234`.
+The service should now be running and available on `localhost:8234`.
